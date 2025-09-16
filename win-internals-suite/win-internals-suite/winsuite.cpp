@@ -19,6 +19,23 @@
 
 using std::string; using std::wstring; using std::vector;
 
+// Static functions to perform string encoding
+// Cinvert UTF-8 to UTF-16
+static wstring to_wide(const string& s) {
+	int n = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+	wstring w(n ? n - 1 : 0, L'\0'); 
+	if(n) MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, w.data(), n);
+	return w;
+}
+
+// Convert UTF-16 to UTF-8
+static string to_utf8(const wstring& s) {
+	int n = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, nullptr, 0, nullptr, nullptr);
+	string o(n ? n - 1 : 0, '\0');
+	if (n) WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, o.data(), n, nullptr, nullptr);
+	return o;
+}
+
 int main() {
 	return 0;
 }
