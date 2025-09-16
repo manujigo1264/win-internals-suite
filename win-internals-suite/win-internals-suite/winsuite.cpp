@@ -8,6 +8,16 @@
 #include <bcrypt.h> // SHA-256 hashing
 #pragma comment(lib, "Psapi.lib") // ensures linker pulls Psapi.lib
 #pragma comment(lib, "Bcrypt.lib") // ensures linker pulls Bcrypt.lib
+#include <cstdio>
+#include <cstdint>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+using std::string; using std::wstring; using std::vector;
 
 int main() {
 	return 0;
