@@ -66,3 +66,7 @@ inline BYTE* rva_to_ptr(BYTE* base, IMAGE_NT_HEADERS* nt, DWORD rva) {
 }
 
 
+// SHA-256 via CNG (bcrypt)
+inline bool sha256() {
+	return 0;
+}
