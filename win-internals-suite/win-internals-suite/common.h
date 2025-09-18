@@ -67,6 +67,63 @@ inline BYTE* rva_to_ptr(BYTE* base, IMAGE_NT_HEADERS* nt, DWORD rva) {
 
 
 // SHA-256 via CNG (bcrypt)
-inline bool sha256() {
-	return 0;
+inline bool sha256(const void* data, size_t len, string& out_hex) {
+    // Initialize handles for the algorithm provider and hash object
+    BCRYPT_ALG_HANDLE alg{};
+    BCRYPT_HASH_HANDLE h{};
+
+    // Variables to store buffer sizes and bytes read
+    DWORD objLen = 0, got = 0, hashLen = 0;
+
+    // Open the SHA-256 algorithm provider from Windows CNG
+    if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0)
+        return false;
+
+    // Get the required size for the hash object buffer
+    BCryptGetProperty(alg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&objLen, sizeof(objLen), &got, 0);
+
+    // Get the size of the final hash output (32 bytes for SHA-256)
+    BCryptGetProperty(alg, BCRYPT_HASH_LENGTH, (PUCHAR)&hashLen, sizeof(hashLen), &got, 0);
+
+    // Allocate buffers: one for the hash object, one for the final hash result
+    vector<BYTE> obj(objLen), hash(hashLen);
+
+    // Create a hash object instance using the allocated buffer
+    if (BCryptCreateHash(alg, &h, obj.data(), objLen, nullptr, 0, 0) < 0) {
+        BCryptCloseAlgorithmProvider(alg, 0);
+        return false;
+    }
+
+    // Feed the input data into the hash function
+    if (BCryptHashData(h, (PUCHAR)data, (ULONG)len, 0) < 0) {
+        BCryptDestroyHash(h);
+        BCryptCloseAlgorithmProvider(alg, 0);
+        return false;
+    }
+
+    // Finalize the hash computation and retrieve the 32-byte result
+    if (BCryptFinishHash(h, hash.data(), hashLen, 0) < 0) {
+        BCryptDestroyHash(h);
+        BCryptCloseAlgorithmProvider(alg, 0);
+        return false;
+    }
+
+    // Hex conversion lookup table for fast byte-to-hex conversion
+    static const char* hexd = "0123456789abcdef";
+
+    // Prepare output string (clear and reserve space for 64 hex characters)
+    out_hex.clear();
+    out_hex.reserve(hashLen * 2);
+
+    // Convert each byte of the hash to two hexadecimal characters
+    for (BYTE b : hash) {
+        out_hex.push_back(hexd[b >> 4]);    // Upper 4 bits -> first hex digit
+        out_hex.push_back(hexd[b & 0xF]);   // Lower 4 bits -> second hex digit
+    }
+
+    // Clean up Windows CNG resources
+    BCryptDestroyHash(h);
+    BCryptCloseAlgorithmProvider(alg, 0);
+
+    return true; // Success - hash is now in out_hex as lowercase hex string
 }
