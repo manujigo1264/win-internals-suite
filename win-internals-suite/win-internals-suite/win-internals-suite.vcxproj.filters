@@ -99,4 +99,7 @@
       <Filter>include\ui</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.md" />
+  </ItemGroup>
 </Project>

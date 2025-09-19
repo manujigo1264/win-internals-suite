@@ -146,6 +146,9 @@
     <ClInclude Include="pe_parser.h" />
     <ClInclude Include="proc_enum.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.md" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
