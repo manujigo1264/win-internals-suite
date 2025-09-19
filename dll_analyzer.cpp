@@ -22,10 +22,17 @@ SignatureEngine::HexSignature::HexSignature(const std::string& n, const std::str
     parse_hex_pattern(hex);
 }
 
-// HexSignature parse_hex_pattern implementation  
+// HexSignature parse_hex_pattern implementation with validation
 void SignatureEngine::HexSignature::parse_hex_pattern(const std::string& hex) {
     pattern.clear();
     mask.clear();
+
+    // Add input validation
+    if (hex.empty()) return;
+    if (hex.length() % 2 != 0) {
+        // Invalid hex string length - should be even
+        return;
+    }
 
     for (size_t i = 0; i < hex.length(); i += 2) {
         if (i + 1 >= hex.length()) break;
@@ -37,11 +44,16 @@ void SignatureEngine::HexSignature::parse_hex_pattern(const std::string& hex) {
         }
         else {
             try {
+                // Validate hex characters
+                if (byte_str.find_first_not_of("0123456789ABCDEFabcdef") != std::string::npos) {
+                    continue; // Skip invalid hex characters
+                }
+
                 uint8_t byte_val = static_cast<uint8_t>(std::stoul(byte_str, nullptr, 16));
                 pattern.push_back(byte_val);
                 mask.push_back(0xFF);  // Exact match
             }
-            catch (...) {
+            catch (const std::exception&) {
                 // Invalid hex, skip
                 continue;
             }
@@ -87,6 +99,9 @@ void SignatureEngine::add_signature(const std::string& name, const std::string& 
 std::vector<Detection> SignatureEngine::scan_signatures(const uint8_t* data, size_t size) const {
     std::vector<Detection> detections;
 
+    // Add null pointer and size validation
+    if (!data || size == 0) return detections;
+
     for (const auto& sig : signatures_) {
         if (search_pattern(data, size, sig)) {
             std::vector<std::string> indicators = {
@@ -101,6 +116,7 @@ std::vector<Detection> SignatureEngine::scan_signatures(const uint8_t* data, siz
 
 bool SignatureEngine::search_pattern(const uint8_t* data, size_t data_size, const HexSignature& sig) const {
     if (sig.pattern.empty() || data_size < sig.pattern.size()) return false;
+    if (!data) return false;
 
     for (size_t i = 0; i <= data_size - sig.pattern.size(); ++i) {
         bool match = true;
@@ -118,7 +134,7 @@ bool SignatureEngine::search_pattern(const uint8_t* data, size_t data_size, cons
 std::string SignatureEngine::bytes_to_hex(const std::vector<uint8_t>& bytes, const std::vector<uint8_t>& mask) const {
     std::ostringstream oss;
     for (size_t i = 0; i < bytes.size(); ++i) {
-        if (mask[i] == 0x00) {
+        if (i < mask.size() && mask[i] == 0x00) {
             oss << "??";
         }
         else {
@@ -198,6 +214,9 @@ void ImportAnalyzer::load_suspicious_apis() {
 std::vector<Detection> ImportAnalyzer::analyze_imports(const std::vector<std::string>& imports) const {
     std::vector<Detection> detections;
 
+    // Add validation for empty imports
+    if (imports.empty()) return detections;
+
     // Convert imports to lowercase for comparison
     std::unordered_set<std::string> import_set;
     for (const auto& imp : imports) {
@@ -242,7 +261,7 @@ std::string ImportAnalyzer::to_lowercase(const std::string& str) const {
 
 // EntropyAnalyzer implementation
 double EntropyAnalyzer::calculate_entropy(const uint8_t* data, size_t size) {
-    if (size == 0) return 0.0;
+    if (size == 0 || !data) return 0.0;
 
     std::array<size_t, 256> frequency = { 0 };
 
@@ -270,17 +289,25 @@ bool EntropyAnalyzer::is_likely_packed(double entropy) {
 // HashCalculator implementation
 bool HashCalculator::calculate_hashes(const uint8_t* data, size_t size,
     std::string& sha256_out, std::string& md5_out) {
+    // Add validation
+    if (!data || size == 0) return false;
+
     return calculate_sha256(data, size, sha256_out) &&
         calculate_md5(data, size, md5_out);
 }
 
 bool HashCalculator::calculate_sha256(const uint8_t* data, size_t size, std::string& out) {
+    // Add validation
+    if (!data || size == 0) return false;
+
     // Use existing sha256 function from common.h
     return sha256(data, size, out);
 }
 
 bool HashCalculator::calculate_md5(const uint8_t* data, size_t size, std::string& out) {
-    // Simplified MD5 implementation - in production use a proper crypto library
+    // Add validation
+    if (!data || size == 0) return false;
+
     BCRYPT_ALG_HANDLE alg{};
     BCRYPT_HASH_HANDLE h{};
     DWORD objLen = 0, got = 0, hashLen = 0;
@@ -338,6 +365,13 @@ ScanResult MalwareScanner::scan_file(const std::wstring& path) const {
     ScanResult result;
     result.filePath = path;
 
+    // Add path validation
+    if (path.empty()) {
+        result.detections.emplace_back(DetectionCategory::Unknown, ThreatLevel::Critical,
+            "Invalid_Path", "Empty file path provided");
+        return result;
+    }
+
     // Open file
     MappedFile mf;
     if (!mf.open(path)) {
@@ -347,6 +381,13 @@ ScanResult MalwareScanner::scan_file(const std::wstring& path) const {
     }
 
     result.fileSize = mf.size;
+
+    // Add file size validation
+    if (mf.size == 0) {
+        result.detections.emplace_back(DetectionCategory::Unknown, ThreatLevel::Suspicious,
+            "Empty_File", "File is empty");
+        return result;
+    }
 
     // Calculate hashes
     if (!HashCalculator::calculate_hashes(mf.base, mf.size, result.sha256Hash, result.md5Hash)) {
@@ -393,6 +434,9 @@ std::future<std::vector<ScanResult>> MalwareScanner::scan_files_async(const std:
         std::vector<ScanResult> results;
         results.reserve(paths.size());
 
+        // Add validation for empty paths vector
+        if (paths.empty()) return results;
+
         std::vector<std::future<ScanResult>> futures;
         for (const auto& path : paths) {
             futures.push_back(std::async(std::launch::async, [this, path]() {
@@ -415,11 +459,13 @@ void MalwareScanner::analyze_pe_characteristics(const PEInfo& pe, ScanResult& re
             "No_Sections", "PE file has no sections - possible evasion");
     }
 
-    // Check entry point location (common packer indicator)
+    // Check entry point location (improved logic)
     bool entry_in_last_section = false;
-    if (!pe.sections.empty()) {
-        // This is simplified - in real implementation, parse section data properly
-        entry_in_last_section = true; // Placeholder logic
+    if (pe.numSecs > 0) {
+        // Parse section information to check entry point location
+        // This would need proper section parsing to be fully implemented
+        // For now, keeping simplified logic
+        entry_in_last_section = (pe.numSecs > 1); // Placeholder - needs real implementation
     }
 
     if (entry_in_last_section) {
@@ -431,6 +477,21 @@ void MalwareScanner::analyze_pe_characteristics(const PEInfo& pe, ScanResult& re
     if (pe.imports.size() < 5) {
         result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Suspicious,
             "Minimal_Imports", "Very few imports - possible packer or manually crafted PE");
+    }
+
+    // Add check for suspicious section names
+    const std::vector<std::string> suspicious_section_names = {
+        "UPX0", "UPX1", ".aspack", ".adata", ".enigma", ".themida"
+    };
+
+    for (const auto& section : pe.sections) {
+        for (const auto& suspicious_name : suspicious_section_names) {
+            if (section.find(suspicious_name) != std::string::npos) {
+                result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::High,
+                    "Suspicious_Section_Name", "Section name indicates known packer: " + suspicious_name);
+                break;
+            }
+        }
     }
 }
 
@@ -552,7 +613,7 @@ void scan_directory_enhanced(const std::wstring& directory_path) {
     std::wcout << L"(Implementation would recursively scan all files)\n";
 }
 
-// Original simple function (for compatibility) - you'll need to implement this
+// Original simple function (for compatibility)
 void scan_file(const std::wstring& path) {
     // Simple implementation - you can replace this with your original logic
     scan_file_enhanced(path);

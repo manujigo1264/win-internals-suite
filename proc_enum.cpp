@@ -96,26 +96,25 @@ public:
     }
 
     // Get error message for last Windows error
-    static std::string get_last_error_message() {
+    static std::wstring get_last_error_message() {
         DWORD error = GetLastError();
-        LPSTR buffer = nullptr;
+        LPWSTR buffer = nullptr;
 
-        DWORD length = FormatMessageA(
+        DWORD length = FormatMessageW(  // Use FormatMessageW
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            reinterpret_cast<LPSTR>(&buffer), 0, nullptr);
+            reinterpret_cast<LPWSTR>(&buffer), 0, nullptr);
 
-        std::string message;
+        std::wstring message;  // Use wstring
         if (length > 0 && buffer) {
             message = buffer;
-            // Remove trailing newlines
-            while (!message.empty() && (message.back() == '\r' || message.back() == '\n')) {
+            while (!message.empty() && (message.back() == L'\r' || message.back() == L'\n')) {
                 message.pop_back();
             }
         }
 
         if (buffer) LocalFree(buffer);
-        return message.empty() ? "Unknown error" : message;
+        return message.empty() ? L"Unknown error" : message;
     }
 
     // Validate PID range
