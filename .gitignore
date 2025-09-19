@@ -1,0 +1,22 @@
+# Ignore VS/build artifacts going forward
+@"
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.VC.db
+*.VC.VC.opendb
+
+# Build output
+/x64/
+/Debug/
+/Release/
+/ipch/
+
+# Intermediates
+*.obj
+*.pch
+*.ilk
+*.pdb
+*.log
+"@ | Out-File -Encoding utf8 .gitignore

@@ -1,0 +1,105 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="cli">
+      <UniqueIdentifier>{84b215a6-31ab-47fd-a21e-9e12ad3f0755}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core">
+      <UniqueIdentifier>{4baefc0b-6eed-42c5-8bac-e3f8e8865625}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include">
+      <UniqueIdentifier>{09442a08-d1d4-40a7-b45c-371dcea8197f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rules">
+      <UniqueIdentifier>{cc33d4b0-90dd-4c19-8d0d-1e9891451461}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tests">
+      <UniqueIdentifier>{a7068454-60d9-4067-9258-d13ca8a5c0fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\pe">
+      <UniqueIdentifier>{b5964197-d12b-4b86-9172-30a4d7ab1517}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\proc">
+      <UniqueIdentifier>{6cd8b473-d4be-40dd-9d83-428bc9f4773a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\dll">
+      <UniqueIdentifier>{7f988798-f134-43ec-8318-d305a101969f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\ui">
+      <UniqueIdentifier>{6eb4d933-cc2d-47d5-aa7f-6869c0c4c276}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>cli</Filter>
+    </ClCompile>
+    <ClCompile Include="pe_parser.cpp">
+      <Filter>core\pe</Filter>
+    </ClCompile>
+    <ClCompile Include="proc_enum.cpp">
+      <Filter>core\proc</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_analyzer.cpp">
+      <Filter>core\dll</Filter>
+    </ClCompile>
+    <ClCompile Include="ui_helpers.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="console_color.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="options.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="session_stats.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="interactive.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pe_parser.h">
+      <Filter>core\pe</Filter>
+    </ClInclude>
+    <ClInclude Include="proc_enum.h">
+      <Filter>core\proc</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_analyzer.h">
+      <Filter>core\dll</Filter>
+    </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="ui_helpers.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="console_color.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="options.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="session_stats.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="interactive.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="README.md" />
+  </ItemGroup>
+</Project>
