@@ -1,13 +1,22 @@
-# Ignore Visual Studio cache and build junk
+# Ignore VS/build artifacts going forward
+@"
+# Visual Studio
 .vs/
-[Bb]in/
-[Oo]bj/
+*.suo
 *.user
 *.VC.db
-*.opendb
-*.tlog
-*.log
+*.VC.VC.opendb
+
+# Build output
+/x64/
+/Debug/
+/Release/
+/ipch/
+
+# Intermediates
+*.obj
+*.pch
 *.ilk
 *.pdb
-*.idb
-*.suo
+*.log
+"@ | Out-File -Encoding utf8 .gitignore

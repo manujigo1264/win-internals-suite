@@ -1,0 +1,13 @@
+# Ignore Visual Studio cache and build junk
+.vs/
+[Bb]in/
+[Oo]bj/
+*.user
+*.VC.db
+*.opendb
+*.tlog
+*.log
+*.ilk
+*.pdb
+*.idb
+*.suo
