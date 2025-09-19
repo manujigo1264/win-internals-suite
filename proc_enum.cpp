@@ -1,4 +1,5 @@
-#pragma once
+#include "proc_enum.h"
+#include "common.h"
 #include <Windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>

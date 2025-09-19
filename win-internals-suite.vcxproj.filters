@@ -40,6 +40,9 @@
     <Filter Include="include\ui">
       <UniqueIdentifier>{6eb4d933-cc2d-47d5-aa7f-6869c0c4c276}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\etw">
+      <UniqueIdentifier>{ae276298-499e-4935-be31-ebea7c024139}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -69,6 +72,9 @@
     <ClCompile Include="interactive.cpp">
       <Filter>include\ui</Filter>
     </ClCompile>
+    <ClCompile Include="etw_analyzer.cpp">
+      <Filter>core\etw</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pe_parser.h">
@@ -97,6 +103,9 @@
     </ClInclude>
     <ClInclude Include="interactive.h">
       <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="eta_analyzer.h">
+      <Filter>core\etw</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
