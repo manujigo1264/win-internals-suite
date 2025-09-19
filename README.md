@@ -124,4 +124,4 @@ Issues and PRs welcome—please keep changes small and well-commented to preserv
 ---
 
 ## License
-MIT (or your choice; update this section accordingly).
+MIT
