@@ -9,14 +9,6 @@
 #include <future>
 #include <mutex>
 
-// Forward declarations
-class SignatureEngine;
-class ImportAnalyzer;
-class EntropyAnalyzer;
-class HashCalculator;
-class MalwareScanner;
-class ScanReporter;
-
 // Enhanced threat detection levels
 enum class ThreatLevel {
     Clean = 0,
@@ -71,12 +63,25 @@ struct ScanResult {
 // Enhanced signature system
 class SignatureEngine {
 private:
-    struct HexSignature;
+    struct HexSignature {
+        std::string name;
+        std::vector<uint8_t> pattern;
+        std::vector<uint8_t> mask;  // For wildcard support
+        DetectionCategory category;
+        ThreatLevel level;
+        std::string description;
+
+        HexSignature(const std::string& n, const std::string& hex,
+            DetectionCategory cat, ThreatLevel lvl, const std::string& desc);
+
+    private:
+        void parse_hex_pattern(const std::string& hex);
+    };
+
     std::vector<HexSignature> signatures_;
 
-public:
+public:  // ADD THIS LINE
     SignatureEngine();
-
     void load_default_signatures();
     void add_signature(const std::string& name, const std::string& hex_pattern,
         DetectionCategory category, ThreatLevel level, const std::string& description);
@@ -85,17 +90,24 @@ public:
 private:
     bool search_pattern(const uint8_t* data, size_t data_size, const HexSignature& sig) const;
     std::string bytes_to_hex(const std::vector<uint8_t>& bytes, const std::vector<uint8_t>& mask) const;
-};
+};  // ADD THIS LINE
 
 // Enhanced import analysis
 class ImportAnalyzer {
 private:
-    struct SuspiciousAPISet;
+    struct SuspiciousAPISet {
+        std::string name;
+        std::vector<std::string> apis;
+        DetectionCategory category;
+        ThreatLevel level;
+        std::string description;
+        bool requireAll;  // true = all APIs required, false = any API triggers
+    };
+
     std::vector<SuspiciousAPISet> api_sets_;
 
 public:
     ImportAnalyzer();
-
     void load_suspicious_apis();
     std::vector<Detection> analyze_imports(const std::vector<std::string>& imports) const;
 

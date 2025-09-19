@@ -25,7 +25,9 @@
 #include <array>              // Added for entropy calculation
 #include <cmath>              // Added for log2 function
 
-using std::string; using std::wstring; using std::vector;
+using std::string; 
+using std::wstring; 
+using std::vector;
 
 // Utility functions to perform string encoding
 // Convert UTF-8 to UTF-16

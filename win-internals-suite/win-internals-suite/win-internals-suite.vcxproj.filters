@@ -37,6 +37,9 @@
     <Filter Include="core\dll">
       <UniqueIdentifier>{7f988798-f134-43ec-8318-d305a101969f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\ui">
+      <UniqueIdentifier>{6eb4d933-cc2d-47d5-aa7f-6869c0c4c276}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,6 +54,21 @@
     <ClCompile Include="dll_analyzer.cpp">
       <Filter>core\dll</Filter>
     </ClCompile>
+    <ClCompile Include="ui_helpers.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="console_color.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="options.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="session_stats.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="interactive.cpp">
+      <Filter>include\ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pe_parser.h">
@@ -64,6 +82,21 @@
     </ClInclude>
     <ClInclude Include="common.h">
       <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="ui_helpers.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="console_color.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="options.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="session_stats.h">
+      <Filter>include\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="interactive.h">
+      <Filter>include\ui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

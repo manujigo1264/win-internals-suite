@@ -9,6 +9,16 @@
 #include <algorithm>
 #include <memory>
 
+// Helper function to convert wide string to narrow string
+std::string wstring_to_string(const std::wstring& wstr) {
+    std::string result;
+    for (wchar_t wc : wstr) {
+        if (wc < 128) result += static_cast<char>(wc);
+        else result += '?';
+    }
+    return result;
+}
+
 // RAII wrapper for snapshot handles
 class SnapshotHandle {
 private:
@@ -85,26 +95,26 @@ public:
     }
 
     // Get error message for last Windows error
-    static std::wstring get_last_error_message() {
+    static std::string get_last_error_message() {
         DWORD error = GetLastError();
-        LPWSTR buffer = nullptr;
+        LPSTR buffer = nullptr;
 
-        DWORD length = FormatMessageW(
+        DWORD length = FormatMessageA(
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            reinterpret_cast<LPWSTR>(&buffer), 0, nullptr);
+            reinterpret_cast<LPSTR>(&buffer), 0, nullptr);
 
-        std::wstring message;
+        std::string message;
         if (length > 0 && buffer) {
             message = buffer;
             // Remove trailing newlines
-            while (!message.empty() && (message.back() == L'\r' || message.back() == L'\n')) {
+            while (!message.empty() && (message.back() == '\r' || message.back() == '\n')) {
                 message.pop_back();
             }
         }
 
         if (buffer) LocalFree(buffer);
-        return message.empty() ? L"Unknown error" : message;
+        return message.empty() ? "Unknown error" : message;
     }
 
     // Validate PID range
@@ -205,71 +215,71 @@ class ProcessDisplay {
 public:
     static void print_processes(const std::vector<ProcessInfo>& processes) {
         if (processes.empty()) {
-            std::wcout << L"No processes found.\n";
+            std::cout << "No processes found.\n";
             return;
         }
 
         // Header
-        std::wcout << std::left
-            << std::setw(8) << L"PID"
-            << std::setw(8) << L"PPID"
-            << std::setw(8) << L"Threads"
-            << L"Process Name\n";
-        std::wcout << std::wstring(60, L'-') << L"\n";
+        std::cout << std::left
+            << std::setw(8) << "PID"
+            << std::setw(8) << "PPID"
+            << std::setw(8) << "Threads"
+            << "Process Name\n";
+        std::cout << std::string(60, '-') << "\n";
 
         // Process entries
         for (const auto& proc : processes) {
-            std::wcout << std::left
+            std::cout << std::left
                 << std::setw(8) << proc.pid
                 << std::setw(8) << proc.parentPid
                 << std::setw(8) << proc.threadCount
-                << proc.name << L"\n";
+                << wstring_to_string(proc.name) << "\n";
         }
 
-        std::wcout << L"\nTotal processes: " << processes.size() << L"\n";
+        std::cout << "\nTotal processes: " << processes.size() << "\n";
     }
 
     static void print_modules(DWORD pid, const std::vector<ModuleInfo>& modules) {
         if (modules.empty()) {
-            std::wcout << L"No modules found for PID " << pid << L".\n";
+            std::cout << "No modules found for PID " << pid << ".\n";
             return;
         }
 
-        std::wcout << L"Modules for PID " << pid << L":\n";
-        std::wcout << std::wstring(80, L'=') << L"\n";
+        std::cout << "Modules for PID " << pid << ":\n";
+        std::cout << std::string(80, '=') << "\n";
 
         for (const auto& mod : modules) {
-            std::wcout << L"Base: 0x" << std::hex << std::setw(16) << std::setfill(L'0')
+            std::cout << "Base: 0x" << std::hex << std::setw(16) << std::setfill('0')
                 << reinterpret_cast<uintptr_t>(mod.baseAddress)
-                << L"  Size: 0x" << std::setw(8) << mod.size << std::dec
-                << L"  Name: " << mod.name << L"\n"
-                << L"  Path: " << mod.path << L"\n\n";
+                << "  Size: 0x" << std::setw(8) << mod.size << std::dec
+                << "  Name: " << wstring_to_string(mod.name) << "\n"
+                << "  Path: " << wstring_to_string(mod.path) << "\n\n";
         }
 
-        std::wcout << L"Total modules: " << modules.size() << L"\n";
+        std::cout << "Total modules: " << modules.size() << "\n";
     }
 
     static void print_error(EnumResult result, DWORD pid = 0) {
         switch (result) {
         case EnumResult::SnapshotFailed:
-            std::wcerr << L"Failed to create snapshot: " << SystemUtils::get_last_error_message() << L"\n";
+            std::cout << "Failed to create snapshot: " << SystemUtils::get_last_error_message() << "\n";
             break;
         case EnumResult::AccessDenied:
-            std::wcerr << L"Access denied";
-            if (pid != 0) std::wcerr << L" for PID " << pid;
-            std::wcerr << L". Try running as administrator.\n";
+            std::cout << "Access denied";
+            if (pid != 0) std::cout << " for PID " << pid;
+            std::cout << ". Try running as administrator.\n";
             break;
         case EnumResult::InvalidPid:
-            std::wcerr << L"Invalid PID: " << pid << L"\n";
+            std::cout << "Invalid PID: " << pid << "\n";
             break;
         case EnumResult::ProcessNotFound:
-            std::wcerr << L"Process " << pid << L" not found.\n";
+            std::cout << "Process " << pid << " not found.\n";
             break;
         case EnumResult::NoResults:
-            std::wcerr << L"No results found.\n";
+            std::cout << "No results found.\n";
             break;
         default:
-            std::wcerr << L"Unknown error occurred.\n";
+            std::cout << "Unknown error occurred.\n";
             break;
         }
     }
@@ -281,7 +291,7 @@ void cmd_ps_improved(const std::wstring& filter = L"") {
     std::vector<ProcessInfo> processes;
 
     if (!SystemUtils::is_elevated()) {
-        std::wcout << L"Note: Not running with elevated privileges. Some information may be limited.\n\n";
+        std::cout << "Note: Not running with elevated privileges. Some information may be limited.\n\n";
     }
 
     EnumResult result = enumerator.enumerate_processes(processes, filter);
@@ -317,17 +327,17 @@ void cmd_mods_improved(DWORD pid) {
 void cmd_ps() {
     SnapshotHandle snap(TH32CS_SNAPPROCESS);
     if (!snap.valid()) {
-        std::wcerr << L"Snapshot failed: " << SystemUtils::get_last_error_message() << L"\n";
+        std::cout << "Snapshot failed: " << SystemUtils::get_last_error_message() << "\n";
         return;
     }
 
     PROCESSENTRY32W pe{ sizeof(pe) };
-    std::wcout << std::left << std::setw(8) << L"PID" << L"Process Name\n";
-    std::wcout << std::wstring(40, L'-') << L"\n";
+    std::cout << std::left << std::setw(8) << "PID" << "Process Name\n";
+    std::cout << std::string(40, '-') << "\n";
 
     for (BOOL ok = Process32FirstW(snap, &pe); ok; ok = Process32NextW(snap, &pe)) {
-        std::wcout << std::left << std::setw(8) << pe.th32ProcessID
-            << pe.szExeFile << L"\n";
+        std::cout << std::left << std::setw(8) << pe.th32ProcessID
+            << wstring_to_string(pe.szExeFile) << "\n";
     }
 }
 
@@ -335,40 +345,40 @@ void cmd_mods(DWORD pid) {
     SnapshotHandle snap(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid);
     if (!snap.valid()) {
         DWORD error = GetLastError();
-        std::wcerr << L"Module snapshot failed for PID " << pid
-            << L": " << SystemUtils::get_last_error_message() << L"\n";
+        std::cout << "Module snapshot failed for PID " << pid
+            << ": " << SystemUtils::get_last_error_message() << "\n";
 
         if (error == ERROR_ACCESS_DENIED) {
-            std::wcerr << L"Try running as administrator.\n";
+            std::cout << "Try running as administrator.\n";
         }
         return;
     }
 
     MODULEENTRY32W me{ sizeof(me) };
     for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
-        std::wcout << L"Base=0x" << std::hex << std::setw(16) << std::setfill(L'0')
+        std::cout << "Base=0x" << std::hex << std::setw(16) << std::setfill('0')
             << reinterpret_cast<uintptr_t>(me.modBaseAddr)
-            << L"  Size=0x" << std::setw(8) << me.modBaseSize
-            << std::dec << L"  Path=" << me.szExePath << L"\n";
+            << "  Size=0x" << std::setw(8) << me.modBaseSize
+            << std::dec << "  Path=" << wstring_to_string(me.szExePath) << "\n";
     }
 }
 
 // Example usage
 void example_usage() {
-    std::wcout << L"=== Original Functions ===\n";
-    std::wcout << L"All processes:\n";
+    std::cout << "=== Original Functions ===\n";
+    std::cout << "All processes:\n";
     cmd_ps();
 
-    std::wcout << L"\nModules for PID 4 (System):\n";
+    std::cout << "\nModules for PID 4 (System):\n";
     cmd_mods(4);
 
-    std::wcout << L"\n=== Improved Functions ===\n";
-    std::wcout << L"All processes (improved):\n";
+    std::cout << "\n=== Improved Functions ===\n";
+    std::cout << "All processes (improved):\n";
     cmd_ps_improved();
 
-    std::wcout << L"\nFiltered processes (containing 'exe'):\n";
+    std::cout << "\nFiltered processes (containing 'exe'):\n";
     cmd_ps_improved(L"exe");
 
-    std::wcout << L"\nModules for current process (improved):\n";
+    std::cout << "\nModules for current process (improved):\n";
     cmd_mods_improved(GetCurrentProcessId());
 }

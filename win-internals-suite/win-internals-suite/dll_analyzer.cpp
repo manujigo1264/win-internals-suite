@@ -15,58 +15,39 @@ ScanResult::ScanResult() : fileSize(0), overallThreat(ThreatLevel::Clean),
 isPacked(false), isEncrypted(false), entropy(0.0) {
 }
 
-// Define the HexSignature nested struct
-struct SignatureEngine::HexSignature {
-    std::string name;
-    std::vector<uint8_t> pattern;
-    std::vector<uint8_t> mask;  // For wildcard support
-    DetectionCategory category;
-    ThreatLevel level;
-    std::string description;
+// HexSignature constructor implementation
+SignatureEngine::HexSignature::HexSignature(const std::string& n, const std::string& hex,
+    DetectionCategory cat, ThreatLevel lvl, const std::string& desc)
+    : name(n), category(cat), level(lvl), description(desc) {
+    parse_hex_pattern(hex);
+}
 
-    HexSignature(const std::string& n, const std::string& hex,
-        DetectionCategory cat, ThreatLevel lvl, const std::string& desc)
-        : name(n), category(cat), level(lvl), description(desc) {
-        parse_hex_pattern(hex);
-    }
+// HexSignature parse_hex_pattern implementation  
+void SignatureEngine::HexSignature::parse_hex_pattern(const std::string& hex) {
+    pattern.clear();
+    mask.clear();
 
-private:
-    void parse_hex_pattern(const std::string& hex) {
-        pattern.clear();
-        mask.clear();
+    for (size_t i = 0; i < hex.length(); i += 2) {
+        if (i + 1 >= hex.length()) break;
 
-        for (size_t i = 0; i < hex.length(); i += 2) {
-            if (i + 1 >= hex.length()) break;
-
-            std::string byte_str = hex.substr(i, 2);
-            if (byte_str == "??") {
-                pattern.push_back(0x00);
-                mask.push_back(0x00);  // Wildcard
+        std::string byte_str = hex.substr(i, 2);
+        if (byte_str == "??") {
+            pattern.push_back(0x00);
+            mask.push_back(0x00);  // Wildcard
+        }
+        else {
+            try {
+                uint8_t byte_val = static_cast<uint8_t>(std::stoul(byte_str, nullptr, 16));
+                pattern.push_back(byte_val);
+                mask.push_back(0xFF);  // Exact match
             }
-            else {
-                try {
-                    uint8_t byte_val = static_cast<uint8_t>(std::stoul(byte_str, nullptr, 16));
-                    pattern.push_back(byte_val);
-                    mask.push_back(0xFF);  // Exact match
-                }
-                catch (...) {
-                    // Invalid hex, skip
-                    continue;
-                }
+            catch (...) {
+                // Invalid hex, skip
+                continue;
             }
         }
     }
-};
-
-// Define the SuspiciousAPISet nested struct
-struct ImportAnalyzer::SuspiciousAPISet {
-    std::string name;
-    std::vector<std::string> apis;
-    DetectionCategory category;
-    ThreatLevel level;
-    std::string description;
-    bool requireAll;  // true = all APIs required, false = any API triggers
-};
+}
 
 // SignatureEngine implementation
 SignatureEngine::SignatureEngine() {

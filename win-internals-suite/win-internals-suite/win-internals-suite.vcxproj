@@ -129,10 +129,20 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pe_parser.cpp" />
     <ClCompile Include="proc_enum.cpp" />
+    <ClCompile Include="console_color.cpp" />
+    <ClCompile Include="options.cpp" />
+    <ClCompile Include="session_stats.cpp" />
+    <ClCompile Include="interactive.cpp" />
+    <ClCompile Include="ui_helpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h" />
     <ClInclude Include="dll_analyzer.h" />
+    <ClInclude Include="console_color.h" />
+    <ClInclude Include="interactive.h" />
+    <ClInclude Include="session_stats.h" />
+    <ClInclude Include="options.h" />
+    <ClInclude Include="ui_helpers.h" />
     <ClInclude Include="pe_parser.h" />
     <ClInclude Include="proc_enum.h" />
   </ItemGroup>
