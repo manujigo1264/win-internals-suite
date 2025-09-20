@@ -1,3 +1,79 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="etw_analyzer.cpp" />
+    <ClCompile Include="main.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="options.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="session_stats.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="console_color.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="interactive.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ui_helpers.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="pe_parser.cpp">
+      <Filter>Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="proc_enum.cpp">
+      <Filter>Analysis</Filter>
+    </ClCompile>
+    <ClCompile Include="dll_analyzer.cpp">
+      <Filter>Analysis</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="common.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="console_color.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="dll_analyzer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="eta_analyzer.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="interactive.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="options.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="pe_parser.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="proc_enum.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="session_stats.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="ui_helpers.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{37bad224-f954-4413-a3d9-f13cb2c6ba72}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{44f13395-5691-4910-bda5-fbf094ecc4db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Analysis">
+      <UniqueIdentifier>{d1e79e62-1fdf-4477-92ed-8b312de6dba2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Headers">
+      <UniqueIdentifier>{6929792a-b978-4e01-b99c-d4f9471e4a09}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
 </Project>
