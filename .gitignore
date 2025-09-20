@@ -1,23 +1,37 @@
+# VS user/workspace
 .vs/
 *.suo
 *.user
+*.userosscache
+*.sln.docstates
+
+# Build dirs (both top-level and nested)
+Debug/
+Release/
+x64/
+Win32/
+*/Debug/
+*/Release/
+
+# Compiled objects & intermediates
+*.obj
+*.iobj
+*.pdb
+*.ipdb
+*.idb
+*.ilk
+*.tlog
+*.pch
+*.log
+*.cache
 *.VC.db
 *.VC.VC.opendb
-
-# Build output
-/x64/
-/Debug/
-/Release/
-/ipch/
-[Bb]in/
-[Oo]bj/
-
-# Intermediates
-*.obj
-*.pch
-*.ilk
-*.pdb
-*.log
-*.tlog
-*.idb
+*.lastcodeanalysissucceeded
 *.opendb
+
+# Binaries & libs
+*.exe
+*.dll
+*.lib
+*.exp
+*.recipe
