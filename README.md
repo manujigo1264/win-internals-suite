@@ -1,3 +1,4 @@
+﻿<<<<<<< HEAD
 ﻿# Win Internals Suite
 
 A compact Windows internals utility in modern C++ (C++17). It enumerates processes and modules using native APIs (`ToolHelp32`, **PSAPI**) and can compute SHA-256 hashes with **BCrypt**—all in a single, auditable source file and **no third-party deps**.
