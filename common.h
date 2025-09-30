@@ -29,6 +29,12 @@ using std::string;
 using std::wstring; 
 using std::vector;
 
+struct FileContext {
+    BYTE* base;
+    size_t file_size;
+    IMAGE_NT_HEADERS* nt_headers;
+};
+
 // Utility functions to perform string encoding
 // Convert UTF-8 to UTF-16
 inline wstring to_wide(const string& s) {
@@ -47,31 +53,30 @@ inline string to_utf8(const wstring& s) {
 }
 
 // RVA file mapping (Convert Relative Virtual Address to a raw file pointer)
-inline BYTE* rva_to_ptr(BYTE* base, IMAGE_NT_HEADERS* nt, DWORD rva) {
-    //Get pointer to the first section header in the PE file
-    auto sec = IMAGE_FIRST_SECTION(nt);
-    //Iterate through all sections in the PE file
-    for (WORD i = 0; i < nt->FileHeader.NumberOfSections; ++i, ++sec) {
-        //Get the virtual address where this section is loaded in memory
+inline BYTE* rva_to_ptr(const FileContext& ctx, DWORD rva) {
+    // Validate file bounds
+    if (!ctx.base || ctx.file_size == 0) return nullptr;
+
+    auto sec = IMAGE_FIRST_SECTION(ctx.nt_headers);
+    for (WORD i = 0; i < ctx.nt_headers->FileHeader.NumberOfSections; ++i, ++sec) {
         DWORD va = sec->VirtualAddress;
-        //Get the actual size of the section in memory
-        //use VirtualSize if available, otherwise fall back to SizeOfRawData
         DWORD sz = sec->Misc.VirtualSize ? sec->Misc.VirtualSize : sec->SizeOfRawData;
-        //Check if the target RVA falls within this section's virtual address range
+
         if (rva >= va && rva < va + sz) {
-            // Calculate the raw file pointer:
-            // 1. (rva - va) = offset within the section
-            // 2. + sec->PointerToRawData = add section's file offset
-            // 3. + base = add base pointer to get absolute file pointer
-            return base + (rva - va) + sec->PointerToRawData;
+            // Check for integer overflow
+            DWORD offset = rva - va;
+            if (offset > sec->SizeOfRawData) return nullptr;
+            if (sec->PointerToRawData > ctx.file_size) return nullptr;
+            if (offset > ctx.file_size - sec->PointerToRawData) return nullptr;
+
+            return ctx.base + sec->PointerToRawData + offset;
         }
     }
 
-    // If RVA points to PE headers (before first section), it's not relocated, so we can directly add it to the base pointer
-    if (rva < nt->OptionalHeader.SizeOfHeaders) {
-        return base + rva;
+    // Handle header access
+    if (rva < ctx.nt_headers->OptionalHeader.SizeOfHeaders && rva < ctx.file_size) {
+        return ctx.base + rva;
     }
-    // RVA doesn't map to any valid section or header - invalid address
     return nullptr;
 }
 

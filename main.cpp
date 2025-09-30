@@ -1,4 +1,4 @@
-#include "common.h"
+﻿#include "common.h"
 #include "proc_enum.h"
 #include "pe_parser.h"
 #include "dll_analyzer.h"
@@ -11,6 +11,11 @@
 #include <fstream>
 #include <io.h>
 #include <fcntl.h>
+#include "etw_analyzer.h"
+#include <ShlObj.h>
+#include "directory_scanner.h"
+
+#pragma comment(lib, "Shell32.lib")   // if using IsUserAnAdmin()
 
 // Function to redirect output to file if specified
 class OutputRedirector {
@@ -22,7 +27,7 @@ private:
 public:
     OutputRedirector(const std::string& filename) {
         if (!filename.empty()) {
-            file_stream.open(filename);
+            file_stream.open(filename); 
             if (file_stream.is_open()) {
                 original_cout = std::cout.rdbuf();
                 original_wcout = std::wcout.rdbuf();
@@ -145,6 +150,22 @@ int execute_command(const Options& opts) {
             scan_directory_enhanced(to_wide(args[0]));
             return 0;
         }
+        else if (cmd == "trace" || cmd == "etw") {
+            if (!IsUserAnAdmin()) {
+                ConsoleColor::print_error(L"Administrator privileges are required for kernel ETW providers.\n");
+                ConsoleColor::print_info(L"Right-click -> Run as administrator, or launch from an elevated terminal.\n");
+                return 1;
+            }
+
+            if (opts.verbose) {
+                ConsoleColor::print_info(L"Starting ETW kernel tracing (process/thread/image)...\n");
+            }
+
+            // Blocks until stopped (Ctrl+C) or the session is closed
+            int rc = run_etw_analyzer();
+            return rc;
+        }
+
         else {
             ConsoleColor::print_error(L"Unknown command: ");
             std::wcout << to_wide(cmd) << L"\n\n";

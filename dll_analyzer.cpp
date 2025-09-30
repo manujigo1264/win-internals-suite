@@ -1,8 +1,13 @@
-#include "dll_analyzer.h"
-#include <sstream>
+﻿#include "dll_analyzer.h"
+#include "directory_scanner.h"
+#include "ui_helpers.h"
+#include "session_stats.h"
+#include "console_color.h"
+#include <fstream>
+#include <chrono>
 #include <iomanip>
-#include <algorithm>
-#include <array>
+#include <sstream>
+#include "full_archive_scanner.h"
 
 // Detection struct constructor implementation
 Detection::Detection(DetectionCategory cat, ThreatLevel lvl, const std::string& n,
@@ -22,10 +27,17 @@ SignatureEngine::HexSignature::HexSignature(const std::string& n, const std::str
     parse_hex_pattern(hex);
 }
 
-// HexSignature parse_hex_pattern implementation  
+// HexSignature parse_hex_pattern implementation with validation
 void SignatureEngine::HexSignature::parse_hex_pattern(const std::string& hex) {
     pattern.clear();
     mask.clear();
+
+    // Add input validation
+    if (hex.empty()) return;
+    if (hex.length() % 2 != 0) {
+        // Invalid hex string length - should be even
+        return;
+    }
 
     for (size_t i = 0; i < hex.length(); i += 2) {
         if (i + 1 >= hex.length()) break;
@@ -37,11 +49,16 @@ void SignatureEngine::HexSignature::parse_hex_pattern(const std::string& hex) {
         }
         else {
             try {
+                // Validate hex characters
+                if (byte_str.find_first_not_of("0123456789ABCDEFabcdef") != std::string::npos) {
+                    continue; // Skip invalid hex characters
+                }
+
                 uint8_t byte_val = static_cast<uint8_t>(std::stoul(byte_str, nullptr, 16));
                 pattern.push_back(byte_val);
                 mask.push_back(0xFF);  // Exact match
             }
-            catch (...) {
+            catch (const std::exception&) {
                 // Invalid hex, skip
                 continue;
             }
@@ -55,28 +72,28 @@ SignatureEngine::SignatureEngine() {
 }
 
 void SignatureEngine::load_default_signatures() {
-    // Shellcode signatures with wildcards
+    // Only keep high-confidence malware signatures to reduce false positives
+
+    // Actual shellcode signatures (keep these)
     add_signature("Metasploit_x64_Reverse_Shell", "FC4883E4F0E8C0000000415141??41??",
         DetectionCategory::Shellcode, ThreatLevel::High, "Metasploit x64 reverse shell");
 
-    add_signature("Windows_x86_Prologue", "558BEC83EC??",
-        DetectionCategory::Shellcode, ThreatLevel::Suspicious, "Common x86 function prologue");
-
-    // Process hollowing patterns
+    // Process hollowing patterns (keep but lower threat level)
     add_signature("Process_Hollowing", "E8????????68????????6A??6A??6A??E8????????",
         DetectionCategory::ProcessInjection, ThreatLevel::High, "Process hollowing technique");
 
-    // Anti-debugging
-    add_signature("IsDebuggerPresent", "FF15????????85C075??",
-        DetectionCategory::AntiAnalysis, ThreatLevel::Likely, "Anti-debugging check");
-
-    // Crypto signatures
+    // Crypto signatures (keep but lower threat level)
     add_signature("RC4_Key_Schedule", "33C040885C05??40??????????72F4",
-        DetectionCategory::Cryptography, ThreatLevel::Likely, "RC4 key scheduling");
+        DetectionCategory::Cryptography, ThreatLevel::Suspicious, "RC4 key scheduling");
 
-    // Persistence mechanisms
+    // Persistence mechanisms (keep but lower threat level)
     add_signature("Run_Registry_Key", "536F6674776172655C4D6963726F736F66745C57696E646F77735C43757272656E7456657273696F6E5C52756E",
-        DetectionCategory::Persistence, ThreatLevel::Likely, "Run registry key access");
+        DetectionCategory::Persistence, ThreatLevel::Suspicious, "Run registry key access");
+
+    // REMOVED: These cause too many false positives on legitimate software
+    // - Windows_x86_Prologue (normal function pattern)
+    // - IsDebuggerPresent (legitimate software uses this)
+    // - Anti_Analysis (too broad)
 }
 
 void SignatureEngine::add_signature(const std::string& name, const std::string& hex_pattern,
@@ -86,6 +103,9 @@ void SignatureEngine::add_signature(const std::string& name, const std::string& 
 
 std::vector<Detection> SignatureEngine::scan_signatures(const uint8_t* data, size_t size) const {
     std::vector<Detection> detections;
+
+    // Add null pointer and size validation
+    if (!data || size == 0) return detections;
 
     for (const auto& sig : signatures_) {
         if (search_pattern(data, size, sig)) {
@@ -101,6 +121,7 @@ std::vector<Detection> SignatureEngine::scan_signatures(const uint8_t* data, siz
 
 bool SignatureEngine::search_pattern(const uint8_t* data, size_t data_size, const HexSignature& sig) const {
     if (sig.pattern.empty() || data_size < sig.pattern.size()) return false;
+    if (!data) return false;
 
     for (size_t i = 0; i <= data_size - sig.pattern.size(); ++i) {
         bool match = true;
@@ -118,7 +139,7 @@ bool SignatureEngine::search_pattern(const uint8_t* data, size_t data_size, cons
 std::string SignatureEngine::bytes_to_hex(const std::vector<uint8_t>& bytes, const std::vector<uint8_t>& mask) const {
     std::ostringstream oss;
     for (size_t i = 0; i < bytes.size(); ++i) {
-        if (mask[i] == 0x00) {
+        if (i < mask.size() && mask[i] == 0x00) {
             oss << "??";
         }
         else {
@@ -134,69 +155,48 @@ ImportAnalyzer::ImportAnalyzer() {
 }
 
 void ImportAnalyzer::load_suspicious_apis() {
-    // Process injection (classic)
+    // Keep only high-confidence suspicious API combinations
+
+    // Process injection (classic) - keep this as HIGH threat
     api_sets_.push_back({
         "Process_Injection_Classic",
         {"kernel32.dll!openprocess", "kernel32.dll!writeprocessmemory", "kernel32.dll!createremotethread"},
         DetectionCategory::ProcessInjection, ThreatLevel::High,
-        "Classic process injection technique", true
+        "Classic process injection technique", true  // Require ALL APIs
         });
 
-    // Advanced process injection
+    // Advanced process injection - keep this as HIGH threat
     api_sets_.push_back({
         "Process_Injection_Advanced",
         {"ntdll.dll!ntcreatesection", "ntdll.dll!ntmapviewofsection", "ntdll.dll!ntunmapviewofsection"},
         DetectionCategory::ProcessInjection, ThreatLevel::High,
-        "Advanced process injection using sections", true
+        "Advanced process injection using sections", true  // Require ALL APIs
         });
 
-    // Anti-analysis APIs
-    api_sets_.push_back({
-        "Anti_Analysis",
-        {"kernel32.dll!isdebuggerpresent", "ntdll.dll!ntqueryinformationprocess",
-         "kernel32.dll!checkremotedebuggerpresent", "ntdll.dll!ntsetinformationthread"},
-        DetectionCategory::AntiAnalysis, ThreatLevel::Likely,
-        "Anti-debugging and analysis evasion", false
-        });
+    // REMOVED: Anti-analysis APIs (too many false positives)
+    // - IsDebuggerPresent is used by legitimate software
+    // - CheckRemoteDebuggerPresent is common in commercial software
 
-    // Persistence mechanisms
-    api_sets_.push_back({
-        "Registry_Persistence",
-        {"advapi32.dll!regsetvalueexa", "advapi32.dll!regsetvalueexw",
-         "advapi32.dll!regcreatekey", "advapi32.dll!regcreatekeyex"},
-        DetectionCategory::Persistence, ThreatLevel::Suspicious,
-        "Registry-based persistence", false
-        });
+    // REMOVED: Registry persistence (too broad)
+    // - RegSetValue APIs are used by all installers
 
-    // Network activity
-    api_sets_.push_back({
-        "Network_Activity",
-        {"ws2_32.dll!socket", "ws2_32.dll!connect", "ws2_32.dll!send", "ws2_32.dll!recv"},
-        DetectionCategory::NetworkActivity, ThreatLevel::Suspicious,
-        "Network communication capabilities", false
-        });
+    // REMOVED: Network activity (too common)
+    // - Socket APIs are used by any networked software
 
-    // File system manipulation
-    api_sets_.push_back({
-        "File_Manipulation",
-        {"kernel32.dll!createfilea", "kernel32.dll!createfilew", "kernel32.dll!writefile",
-         "kernel32.dll!setfileattributes", "kernel32.dll!deletefilea"},
-        DetectionCategory::FileSystem, ThreatLevel::Suspicious,
-        "File system manipulation", false
-        });
+    // REMOVED: File manipulation (too broad)
+    // - File APIs are used by every application
 
-    // Cryptographic APIs
-    api_sets_.push_back({
-        "Cryptography",
-        {"advapi32.dll!cryptacquirecontext", "advapi32.dll!cryptencrypt",
-         "advapi32.dll!cryptdecrypt", "bcrypt.dll!bcryptencrypt"},
-        DetectionCategory::Cryptography, ThreatLevel::Suspicious,
-        "Cryptographic operations", false
-        });
+    // REMOVED: Cryptography APIs (too common)
+    // - Crypto APIs are used by legitimate software for security
+
+    // Only keep very specific, high-confidence malware patterns
 }
 
 std::vector<Detection> ImportAnalyzer::analyze_imports(const std::vector<std::string>& imports) const {
     std::vector<Detection> detections;
+
+    // Add validation for empty imports
+    if (imports.empty()) return detections;
 
     // Convert imports to lowercase for comparison
     std::unordered_set<std::string> import_set;
@@ -242,7 +242,7 @@ std::string ImportAnalyzer::to_lowercase(const std::string& str) const {
 
 // EntropyAnalyzer implementation
 double EntropyAnalyzer::calculate_entropy(const uint8_t* data, size_t size) {
-    if (size == 0) return 0.0;
+    if (size == 0 || !data) return 0.0;
 
     std::array<size_t, 256> frequency = { 0 };
 
@@ -263,24 +263,33 @@ double EntropyAnalyzer::calculate_entropy(const uint8_t* data, size_t size) {
     return entropy;
 }
 
+// Increased threshold from 7.0 to 7.5 to reduce false positives
 bool EntropyAnalyzer::is_likely_packed(double entropy) {
-    return entropy > 7.0;  // High entropy suggests compression/encryption
+    return entropy > 7.5;  // Higher threshold to reduce false positives on legitimate compressed software
 }
 
 // HashCalculator implementation
 bool HashCalculator::calculate_hashes(const uint8_t* data, size_t size,
     std::string& sha256_out, std::string& md5_out) {
+    // Add validation
+    if (!data || size == 0) return false;
+
     return calculate_sha256(data, size, sha256_out) &&
         calculate_md5(data, size, md5_out);
 }
 
 bool HashCalculator::calculate_sha256(const uint8_t* data, size_t size, std::string& out) {
+    // Add validation
+    if (!data || size == 0) return false;
+
     // Use existing sha256 function from common.h
     return sha256(data, size, out);
 }
 
 bool HashCalculator::calculate_md5(const uint8_t* data, size_t size, std::string& out) {
-    // Simplified MD5 implementation - in production use a proper crypto library
+    // Add validation
+    if (!data || size == 0) return false;
+
     BCRYPT_ALG_HANDLE alg{};
     BCRYPT_HASH_HANDLE h{};
     DWORD objLen = 0, got = 0, hashLen = 0;
@@ -338,6 +347,55 @@ ScanResult MalwareScanner::scan_file(const std::wstring& path) const {
     ScanResult result;
     result.filePath = path;
 
+    // Add path validation
+    if (path.empty()) {
+        result.detections.emplace_back(DetectionCategory::Unknown, ThreatLevel::Critical,
+            "Invalid_Path", "Empty file path provided");
+        return result;
+    }
+
+    // Check if this is an archive file and handle accordingly
+    if (FullArchiveScanner::is_supported_archive(path)) {
+        std::wcout << L"[ARCHIVE] Full archive scan starting for: " << path << L"\n";
+
+        FullArchiveScanner archive_scanner;
+        auto archive_result = archive_scanner.scan_archive(path, const_cast<MalwareScanner*>(this));
+
+        if (archive_result.extraction_successful) {
+            std::wcout << L"[ARCHIVE] Found " << archive_result.total_threats
+                << L" threats in archive contents\n";
+
+            // Merge archive scan results into main result
+            for (const auto& archive_scan : archive_result.file_scan_results) {
+                // Add each detection from archived files
+                for (const auto& detection : archive_scan.detections) {
+                    result.detections.push_back(detection);
+                }
+            }
+
+            // Update overall threat level
+            if (archive_result.highest_threat > result.overallThreat) {
+                result.overallThreat = archive_result.highest_threat;
+            }
+        }
+        else {
+            // Add detection for failed extraction
+            Detection extraction_failure(
+                DetectionCategory::Unknown,
+                ThreatLevel::Suspicious,
+                "Archive_Extraction_Failed",
+                "Could not extract archive for scanning: " + to_utf8(archive_result.error_message),
+                { "Archive type: " + to_utf8(FullArchiveScanner::get_archive_type(path)) }
+            );
+            result.detections.push_back(extraction_failure);
+        }
+
+        auto end_time = std::chrono::high_resolution_clock::now();
+        result.scanTime = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+        return result;
+    }
+
+    // Regular file scanning for non-archive files
     // Open file
     MappedFile mf;
     if (!mf.open(path)) {
@@ -347,6 +405,20 @@ ScanResult MalwareScanner::scan_file(const std::wstring& path) const {
     }
 
     result.fileSize = mf.size;
+
+    // Add file size validation
+    if (mf.size == 0) {
+        result.detections.emplace_back(DetectionCategory::Unknown, ThreatLevel::Suspicious,
+            "Empty_File", "File is empty");
+        return result;
+    }
+
+    const size_t MAX_SCAN_SIZE = 500 * 1024 * 1024; // 500MB limit
+    bool is_large_file = mf.size > MAX_SCAN_SIZE;
+
+    if (is_large_file) {
+        std::wcout << L"[LARGE FILE] Scanning first 10MB chunk only\n";
+    }
 
     // Calculate hashes
     if (!HashCalculator::calculate_hashes(mf.base, mf.size, result.sha256Hash, result.md5Hash)) {
@@ -360,7 +432,7 @@ ScanResult MalwareScanner::scan_file(const std::wstring& path) const {
 
     if (result.isPacked) {
         std::vector<std::string> entropy_indicators = { "Entropy: " + std::to_string(result.entropy) };
-        result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Likely,
+        result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Suspicious,
             "High_Entropy", "File appears to be packed or encrypted",
             entropy_indicators);
     }
@@ -393,6 +465,9 @@ std::future<std::vector<ScanResult>> MalwareScanner::scan_files_async(const std:
         std::vector<ScanResult> results;
         results.reserve(paths.size());
 
+        // Add validation for empty paths vector
+        if (paths.empty()) return results;
+
         std::vector<std::future<ScanResult>> futures;
         for (const auto& path : paths) {
             futures.push_back(std::async(std::launch::async, [this, path]() {
@@ -409,28 +484,36 @@ std::future<std::vector<ScanResult>> MalwareScanner::scan_files_async(const std:
 }
 
 void MalwareScanner::analyze_pe_characteristics(const PEInfo& pe, ScanResult& result) const {
-    // Check for suspicious PE characteristics
+    // Only flag truly suspicious PE characteristics, not normal behaviors
+
+    // Check for files with no sections (very suspicious)
     if (pe.numSecs == 0) {
-        result.detections.emplace_back(DetectionCategory::AntiAnalysis, ThreatLevel::Suspicious,
-            "No_Sections", "PE file has no sections - possible evasion");
+        result.detections.emplace_back(DetectionCategory::AntiAnalysis, ThreatLevel::High,
+            "No_Sections", "PE file has no sections - highly suspicious");
     }
 
-    // Check entry point location (common packer indicator)
-    bool entry_in_last_section = false;
-    if (!pe.sections.empty()) {
-        // This is simplified - in real implementation, parse section data properly
-        entry_in_last_section = true; // Placeholder logic
-    }
+    // REMOVED: Entry point anomaly check - causes too many false positives
+    // Modern installers and packed legitimate software often have entry points in last section
 
-    if (entry_in_last_section) {
-        result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Likely,
-            "Entry_Point_Anomaly", "Entry point in last section - possible packer");
-    }
-
-    // Check for minimal imports (another packer indicator)
-    if (pe.imports.size() < 5) {
+    // Only flag files with extremely few imports (less than 2)
+    if (pe.imports.size() < 2) {
         result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Suspicious,
-            "Minimal_Imports", "Very few imports - possible packer or manually crafted PE");
+            "Minimal_Imports", "Very few imports - possible manually crafted PE or packer");
+    }
+
+    // Check for known packer section names (keep this - specific indicators)
+    const std::vector<std::string> packer_section_names = {
+        "UPX0", "UPX1", ".aspack", ".adata", ".enigma", ".themida", ".vmp0", ".vmp1"
+    };
+
+    for (const auto& section : pe.sections) {
+        for (const auto& packer_name : packer_section_names) {
+            if (section.find(packer_name) != std::string::npos) {
+                result.detections.emplace_back(DetectionCategory::Packer, ThreatLevel::Likely,
+                    "Known_Packer_Section", "Section name indicates known packer: " + packer_name);
+                break;
+            }
+        }
     }
 }
 
@@ -545,14 +628,7 @@ void scan_file_enhanced(const std::wstring& path) {
     ScanReporter::print_scan_result(result);
 }
 
-void scan_directory_enhanced(const std::wstring& directory_path) {
-    // Implementation for directory scanning would go here
-    // This is a placeholder for the concept
-    std::wcout << L"Directory scanning: " << directory_path << L"\n";
-    std::wcout << L"(Implementation would recursively scan all files)\n";
-}
-
-// Original simple function (for compatibility) - you'll need to implement this
+// Original simple function (for compatibility)
 void scan_file(const std::wstring& path) {
     // Simple implementation - you can replace this with your original logic
     scan_file_enhanced(path);

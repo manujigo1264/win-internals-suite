@@ -1,5 +1,6 @@
 #pragma once
 #include "common.h"
+#include "directory_scanner.h"
 #include <string>
 #include <iostream>
 
@@ -21,6 +22,9 @@ private:
     static void handle_malware_scan();
     static void handle_batch_scan();
     static void handle_settings();
+
+    // Directory scanning helpers
+    static ScanConfig configure_custom_scan();
 
     // Utility functions
     static void pause();

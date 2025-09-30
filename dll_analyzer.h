@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include "pe_parser.h"
+#include "malware_types.h"
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
@@ -9,56 +10,9 @@
 #include <future>
 #include <mutex>
 
-// Enhanced threat detection levels
-enum class ThreatLevel {
-    Clean = 0,
-    Suspicious = 1,
-    Likely = 2,
-    High = 3,
-    Critical = 4
-};
-
-// Detection categories for better classification
-enum class DetectionCategory {
-    ProcessInjection,
-    Persistence,
-    AntiAnalysis,
-    NetworkActivity,
-    FileSystem,
-    Registry,
-    Cryptography,
-    Shellcode,
-    Packer,
-    Unknown
-};
-
-// Individual detection result
-struct Detection {
-    DetectionCategory category;
-    ThreatLevel level;
-    std::string name;
-    std::string description;
-    std::vector<std::string> indicators;
-
-    Detection(DetectionCategory cat, ThreatLevel lvl, const std::string& n,
-        const std::string& desc, const std::vector<std::string>& ind = {});
-};
-
-// Comprehensive scan result
-struct ScanResult {
-    std::wstring filePath;
-    std::string sha256Hash;
-    std::string md5Hash;
-    size_t fileSize;
-    ThreatLevel overallThreat;
-    std::vector<Detection> detections;
-    bool isPacked;
-    bool isEncrypted;
-    double entropy;
-    std::chrono::milliseconds scanTime;
-
-    ScanResult();
-};
+// Forward declarations for directory scanner types
+struct FileScanResult;
+struct DirectoryScanStats;
 
 // Enhanced signature system
 class SignatureEngine {
@@ -80,7 +34,7 @@ private:
 
     std::vector<HexSignature> signatures_;
 
-public:  // ADD THIS LINE
+public:
     SignatureEngine();
     void load_default_signatures();
     void add_signature(const std::string& name, const std::string& hex_pattern,
@@ -90,7 +44,7 @@ public:  // ADD THIS LINE
 private:
     bool search_pattern(const uint8_t* data, size_t data_size, const HexSignature& sig) const;
     std::string bytes_to_hex(const std::vector<uint8_t>& bytes, const std::vector<uint8_t>& mask) const;
-};  // ADD THIS LINE
+};
 
 // Enhanced import analysis
 class ImportAnalyzer {
@@ -156,11 +110,16 @@ class ScanReporter {
 public:
     static void print_scan_result(const ScanResult& result);
     static void print_detection(const Detection& detection);
-
-private:
     static std::wstring threat_level_to_string(ThreatLevel level);
     static std::wstring category_to_string(DetectionCategory category);
 };
+
+// Directory scanner function declarations
+void save_directory_scan_report(const std::vector<FileScanResult>& results,
+    const DirectoryScanStats& stats,
+    const std::wstring& scanned_directory);
+
+std::wstring category_to_wstring(DetectionCategory category);
 
 // Main scanning functions (improved versions)
 void scan_file_enhanced(const std::wstring& path);
